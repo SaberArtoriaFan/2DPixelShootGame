@@ -1,4 +1,4 @@
-# 2DPixelShootGame
+<p align="center"># 2DPixelShootGame
 <p align="center">一个练手的2D横板像素射击游戏仓库
 <p align="center">正在筹备中......
 预计实现--->一周内
