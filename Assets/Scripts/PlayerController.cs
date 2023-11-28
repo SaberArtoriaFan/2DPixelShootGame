@@ -7,6 +7,10 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Collider2D coll;
 
+    [Header("跳跃按键")]
+    public KeyCode jumpKeyCode;
+    [Header("切枪按键")]
+    public KeyCode switchGunKeyCode;
     [Header("移动参数")]
     public float speed = 8f;
 
@@ -14,6 +18,9 @@ public class PlayerController : MonoBehaviour
 
     [Header("跳跃参数")]
     public float jumpForce = 6f;
+
+    [Header("跳跃时移动受阻")]
+    public float jumpLessMove = 0.1f;
 
     int jumpCount;//跳跃次数
 
@@ -23,32 +30,47 @@ public class PlayerController : MonoBehaviour
     [Header("环境检测")]
     public LayerMask groundLayer;
 
+    [Header("拥有的枪")]
+    public Gun[] guns;
+
+    public bool canInput = true;
     //按键设置
     bool jumpPress;
+    private int gunNum=0;
+    private Vector3 mousePos;
+    Animator animator;
+
+    public Rigidbody2D Rb { get => rb;  }
 
     void Start()
     {
+        animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         coll = GetComponent<Collider2D>();
+        CameraFollow.Instance.Player = this.transform.Find("CameraPos");
+        guns = GetComponentsInChildren<Gun>(true);
     }
 
 
     void Update()
     {
-        if (Input.GetButtonDown("Jump") && jumpCount > 0)
+        if (!canInput) return;
+        if (Input.GetKeyDown(jumpKeyCode) && jumpCount > 0)
         {
             jumpPress = true;
         }
+        SwitchGun();
     }
 
     void FixedUpdate()
     {
-        isOnGroundCheck();
+        IsOnGroundCheck();
+        if (!canInput) return;
         Move();
         Jump();
     }
 
-    void isOnGroundCheck()
+    void IsOnGroundCheck()
     {
         ////判断角色碰撞器与地面图层发生接触
         if (coll.IsTouchingLayers(groundLayer))
@@ -63,15 +85,34 @@ public class PlayerController : MonoBehaviour
 
     void Move()
     {
+        //xVelocity = Input.GetAxisRaw("Horizontal");
+        //var zuli = isOnGround ? 1 : jumpLessMove;
+        //rb.velocity = new Vector2(xVelocity * speed * zuli, rb.velocity.y);
+
+        ////镜面翻转
+        //if (xVelocity != 0)
+        //{
+        //    transform.localScale = new Vector3(xVelocity, 1, 1);
+        //}
         xVelocity = Input.GetAxisRaw("Horizontal");
 
-        rb.velocity = new Vector2(xVelocity * speed, rb.velocity.y);
+        var zuli = isOnGround ? 1 : jumpLessMove;
+        rb.velocity = new Vector2(xVelocity * speed * zuli, rb.velocity.y);
+        mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-        //镜面翻转
-        if (xVelocity != 0)
+        if (mousePos.x > transform.position.x)
         {
-            transform.localScale = new Vector3(xVelocity, 1, 1);
+            transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
         }
+        else
+        {
+            transform.rotation = Quaternion.Euler(new Vector3(0, 180, 0));
+        }
+
+        if (xVelocity!=0&&isOnGround)
+            animator.SetBool("isMoving", true);
+        else
+            animator.SetBool("isMoving", false);
     }
 
     void Jump()
@@ -94,6 +135,18 @@ public class PlayerController : MonoBehaviour
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             jumpCount--;
             jumpPress = false;
+        }
+    }
+    void SwitchGun()
+    {
+        if (Input.GetKeyDown(switchGunKeyCode))
+        {
+            guns[gunNum].gameObject.SetActive(false);
+            if (--gunNum < 0)
+            {
+                gunNum = guns.Length - 1;
+            }
+            guns[gunNum].gameObject.SetActive(true);
         }
     }
 }
